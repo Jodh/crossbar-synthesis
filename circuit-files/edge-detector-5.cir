@@ -1,0 +1,145 @@
+$ SPICE model for memristive devices
+$ Created by Chris Yakopcic
+$ Last Update: 12/21/2011
+$
+$ Connections:
+$ TE - top electrode
+$ BE - bottom electrode
+$ XSV - External connection to plot state variable
+$ that is not used otherwise
+.subckt mem_dev TE BE xo=0.5 XSV=40
+$ Fitting parameters to model different devices
+$ a1, a2, b: Parameters for IV relationship
+$ Vp, Vn: Pos. and neg. voltage thresholds
+$ Ap, An: Multiplier for SV motion intensity
+$ xp, xn: Points where SV motion is reduced
+$ alphap, alphan: Rate at which SV motion decays
+$ xo: Initial value of SV
+$ eta: SV direction relative to voltage
+
+$ Digital 1: [18]
+ .PARAM a1=0.2 a2=0.2 b=0.05 Vp=1.1 Vn=1.1
+ +Ap=1.9e9 An=1.9e9 xp=0.675 xn=0.675 alphap=0.01
+ +alphan=0.01 eta=1
+
+$ Digital 2: [19] cyclical DC sweep
+$ .PARAM a1=1.6e-4 a2=1.6e-4 b=0.05 Vp=2 Vn=2
+$ +Ap=816000 An=816000 xp=0.985 xn=0.985 alphap=0.1
+$ +alphan=0.1 eta=1
+
+$ Analog 1: [19]
+$ .PARAM a1=0.11 a2=0.11 b=0.5 Vp=2 Vn=2
+$ +Ap=7.5 An=2 xp=0.3 xn=0.5 alphap=1
+$ +alphan=5 eta=1
+
+$ Analog 2: [20]
+$ .PARAM a1=0.17 a2=0.17 b=0.05 Vp=4 Vn=4
+$ +Ap=4000 An=4000 xp=0.3 xn=0.5 alphap=1 alphan=5
+$ +eta=1
+
+$ Multiplicative functions to ensure zero state
+$ variable motion at memristor boundaries
+.PARAM wp(V) = '(xp-V)/(1-xp)+1'
+.PARAM wn(V) = 'V/(1-xn)'
+$ Function G(V(t)) - Describes the device threshold
+$ .if (Vp >= 1)
+$ .PARAM A = 1
+$ .else
+$ .PARAM A = 2
+$ .endif
+.PARAM G(V) = '(V <= Vp)?((V >= -1*Vn)?0:-1*An*(exp(-1*V)+(-1*exp(Vn)))):Ap*(exp(V)+(-1*exp(Vp)))'
+$ .PARAM G(V) = 'IF(V <= Vp, IF(V >= -1*Vn, 0, -1*An*(exp(-1*V)+(-1*exp(Vn)))), Ap*(exp(V)+(-1*exp(Vp))))'
+$ Function F(V(t),x(t)) - Describes the SV motion
+.PARAM F(V1,V2) = '(eta*V1 >= 0)?((V2 >= xp)?exp(-1*alphap*(V2-xp))*wp(V2):1):((V2 <= (1-xn))?exp(alphan*(V2+xn-1))*wn(V2):1)'
+$.PARAM F(V1,V2) = 'IF(eta*V1 >= 0, IF(V2 >= xp,
+$ +exp(-1*alphap*(V2-xp))*wp(V2) ,1), IF(V2 <= (1-xn),
+$ +exp(alphan*(V2+xn-1))*wn(V2) ,1))'
+$ IV Response - Hyperbolic sine due to MIM structure
+.PARAM IVRel(V1,V2) = '(V1 >= 0)?a1*V2*sinh(b*V1):a2*V2*sinh(b*V1)'
+$ .PARAM IVRel(V1,V2) = 'IF(V1 >= 0, a1*V2*sinh(b*V1),
+$ +a2*V2*sinh(b*V1))'
+$ Circuit to determine state variable
+$ dx/dt = F(V(t),x(t))*G(V(t))
+Cx XSV 0 '1'
+.ic V(XSV) = xo
+Gx 0 XSV
++value='eta*F(V(TE,BE),V(XSV,0))*G(V(TE,BE))'
+$ Current source for memristor IV response
+Gm TE BE value = 'IVRel(V(TE,BE),V(XSV,0))'
+.ends mem_dev
+
+
+X_0_0 m0 n0 mem_dev xo=1e-06
+X_0_1 m0 n1 mem_dev xo=1e-06
+X_0_2 m0 n2 mem_dev xo=1e-06
+X_0_3 m0 n3 mem_dev xo=1e-06
+X_0_4 m0 n4 mem_dev xo=1e-06
+X_0_5 m0 n5 mem_dev xo=1.0
+X_0_6 m0 n6 mem_dev xo=1e-06
+X_0_7 m0 n7 mem_dev xo=1.0
+X_1_0 m1 n0 mem_dev xo=1.0
+X_1_1 m1 n1 mem_dev xo=1e-06
+X_1_2 m1 n2 mem_dev xo=1.0
+X_1_3 m1 n3 mem_dev xo=1.0
+X_1_4 m1 n4 mem_dev xo=1.0
+X_1_5 m1 n5 mem_dev xo=1e-06
+X_1_6 m1 n6 mem_dev xo=1e-06
+X_1_7 m1 n7 mem_dev xo=1e-06
+X_2_0 m2 n0 mem_dev xo=1.0
+X_2_1 m2 n1 mem_dev xo=1.0
+X_2_2 m2 n2 mem_dev xo=1.0
+X_2_3 m2 n3 mem_dev xo=1e-06
+X_2_4 m2 n4 mem_dev xo=1.0
+X_2_5 m2 n5 mem_dev xo=1e-06
+X_2_6 m2 n6 mem_dev xo=1e-06
+X_2_7 m2 n7 mem_dev xo=1.0
+X_3_0 m3 n0 mem_dev xo=1e-06
+X_3_1 m3 n1 mem_dev xo=1e-06
+X_3_2 m3 n2 mem_dev xo=1.0
+X_3_3 m3 n3 mem_dev xo=1e-06
+X_3_4 m3 n4 mem_dev xo=1.0
+X_3_5 m3 n5 mem_dev xo=1.0
+X_3_6 m3 n6 mem_dev xo=1.0
+X_3_7 m3 n7 mem_dev xo=1e-06
+X_4_0 m4 n0 mem_dev xo=1.0
+X_4_1 m4 n1 mem_dev xo=1.0
+X_4_2 m4 n2 mem_dev xo=1e-06
+X_4_3 m4 n3 mem_dev xo=1e-06
+X_4_4 m4 n4 mem_dev xo=1e-06
+X_4_5 m4 n5 mem_dev xo=1e-06
+X_4_6 m4 n6 mem_dev xo=1.0
+X_4_7 m4 n7 mem_dev xo=1e-06
+X_5_0 m5 n0 mem_dev xo=1e-06
+X_5_1 m5 n1 mem_dev xo=1.0
+X_5_2 m5 n2 mem_dev xo=1e-06
+X_5_3 m5 n3 mem_dev xo=1e-06
+X_5_4 m5 n4 mem_dev xo=1.0
+X_5_5 m5 n5 mem_dev xo=1e-06
+X_5_6 m5 n6 mem_dev xo=1.0
+X_5_7 m5 n7 mem_dev xo=1.0
+X_6_0 m6 n0 mem_dev xo=1e-06
+X_6_1 m6 n1 mem_dev xo=1e-06
+X_6_2 m6 n2 mem_dev xo=1.0
+X_6_3 m6 n3 mem_dev xo=1.0
+X_6_4 m6 n4 mem_dev xo=1.0
+X_6_5 m6 n5 mem_dev xo=1.0
+X_6_6 m6 n6 mem_dev xo=1.0
+X_6_7 m6 n7 mem_dev xo=1.0
+X_7_0 m7 n0 mem_dev xo=1.0
+X_7_1 m7 n1 mem_dev xo=1.0
+X_7_2 m7 n2 mem_dev xo=1.0
+X_7_3 m7 n3 mem_dev xo=1e-06
+X_7_4 m7 n4 mem_dev xo=1e-06
+X_7_5 m7 n5 mem_dev xo=1e-06
+X_7_6 m7 n6 mem_dev xo=1.0
+X_7_7 m7 n7 mem_dev xo=1e-06
+
+
+V1 m0 0 1 
+Rout n7 0 100
+
+.control
+tran 1 2
+.endc
+.end
+
