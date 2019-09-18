@@ -50,7 +50,7 @@ def test(out,out_temp,r,c,mem_state,rng_states,num_bits,prob_dist,input_array,ta
                     elif D[j,k] > num_bits+1:
                         mem_state[i,j,k] = not(input_array[X,D[j,k]-2-num_bits])
             # find flow for given mem state and store in tt
-            for t in range(D.shape[0]*D.shape[1]):
+            for t in range(D.shape[0]+D.shape[1]):
                 for j in range(1,D.shape[0]):
                     for k in range(D.shape[1]):
                         r[i,j] = r[i,j] or (mem_state[i,j,k] and c[i,k])

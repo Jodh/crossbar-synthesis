@@ -88,7 +88,7 @@ def flow_at_outwire(mem_states):
     c = np.zeros(l,dtype='bool')
     # iteration through time
     t = 0
-    while t < 4:
+    while t < 16:
         for i in range(1,n):
             for j in range(l):
                 r[i] = r[i] or (mem_states[i,j] and c[j])
@@ -139,7 +139,7 @@ def reduced_truth_table(D, num_bits, TT_target, input_matrix):
             continue
         else:
             m = find_mem_states(D, input_matrix[i,:])
-            tt = np.append(tt,flow_at_outwire(m))
+            tt = np.append(tt,not(flow_at_outwire(m)))
             tt_target = np.append(tt_target,TT_target[i])
 #    t1 = time.time()
 #    print(' loop time ',t1-t0)
