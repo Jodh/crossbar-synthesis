@@ -129,11 +129,11 @@ def sampled_truth_table(D, num_bits, TT_target, num_samples, input_matrix):
 #    print(' loop time ',t1-t0)
     return np.logical_xor(tt,tt_target)
 
-# input: design, target truth table, num_bits, num_samples, input matrix; output: reduced truth table of design XOR reduced target truth table
+# input: design, target truth table, num_bits, num_samples, input matrix; output: delta weighted cost function
 def reduced_truth_table(D, num_bits, TT_target, input_matrix):
     tt = np.zeros(0,dtype='bool')
     tt_target = np.zeros(0,dtype='bool')
-
+    delta = 0
     for i in range(2**num_bits):
         if TT_target[i] == 2:
             continue
@@ -141,9 +141,18 @@ def reduced_truth_table(D, num_bits, TT_target, input_matrix):
             m = find_mem_states(D, input_matrix[i,:])
             tt = np.append(tt,not(flow_at_outwire(m)))
             tt_target = np.append(tt_target,TT_target[i])
+    for i in range(len(tt)):
+        if tt_target[i] != tt[i]:
+            if tt_target[i] == 1:
+                delta += 3
+            else:
+                delta += 1
 #    t1 = time.time()
 #    print(' loop time ',t1-t0)
-    return np.logical_xor(tt,tt_target)
+
+
+            
+    return delta
 
     
 # the anneling function 
@@ -154,11 +163,12 @@ def simulated_annealing(D,num_bits,TT_target,temp,cool_rate,is_sampling, num_sam
         delta = reduced_truth_table(D,num_bits,TT_target,input_matrix)
     else:
         delta = sampled_truth_table(D, num_bits, TT_target, num_samples, input_matrix)
-    delta_old = np.copy(delta)
+#    delta_old = np.copy(delta)
+        delta_old = delta
     D_best = np.copy(D)
     i = 0
-    while np.sum(delta) >= 5000:
-        if i >= 20000:
+    while delta >= 5000:
+        if i >= 1800:
             break
         i = i +1
         D_temp = perturb_design(D,probability_distribution)
@@ -167,25 +177,25 @@ def simulated_annealing(D,num_bits,TT_target,temp,cool_rate,is_sampling, num_sam
             delta = reduced_truth_table(D_temp, num_bits, TT_target, input_matrix)
         else:     
             delta = sampled_truth_table(D_temp, num_bits, TT_target, input_matrix)
-        if np.sum(delta) < np.sum(delta_old):
+        if delta < delta_old:
             D_best = np.copy(D_temp)
-        if np.random.rand(1) < np.exp(-(np.sum(delta)-np.sum(delta_old))/temp):
+        if np.random.rand(1) < np.exp(-(delta-delta_old)/temp):
             D = np.copy(D_temp)
-            delta_old = np.copy(delta)
+            delta_old = delta
             temp = cool_rate*temp
         else:
-            delta_old = np.copy(delta)
+            delta_old = delta
             temp = cool_rate*temp
-        if i%1000 == 0:
-            print("\n")
-            print(delta)
-            print(D_best)
-            print("\n")
+#        if i%1000 == 0:
+#            print("\n")
+#            print(delta)
+#            print(D_best)
+#            print("\n")
 #            
-#    print("\n")    
-#    print(np.sum(delta))
-#    print(D_best)
-#    print("\n")
+    print("\n")    
+    print(delta)
+    print(D_best)
+    print("\n")
 #    return D_best, D
 
 ## JETCAS design PSNR 2.4dB
@@ -223,8 +233,8 @@ D_jetcas_inverse = np.array([[Na[7], False, Nb[6], Nb[7], Na[5], False, Nb[7],Fa
 [b[5],False,False,b[5],b[5],b[5],b[7],b[0]],
 [b[7],Nb[6],False,b[7],False,Na[6],a[7],b[7]]],dtype=int)  
     
-#D = generate_random_design(8,8,16,probability_distribution)  
-D = generate_random_design(6,6,16,probability_distribution) 
+D = generate_random_design(8,8,16,probability_distribution)  
+#D = generate_random_design(6,6,16,probability_distribution) 
 #print(D) 
             
 simulated_annealing(D=D, num_bits=16, TT_target = TT_target, temp = 5000, cool_rate=0.99, is_sampling=False, num_samples=10000)    

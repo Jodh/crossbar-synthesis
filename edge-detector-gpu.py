@@ -5,8 +5,8 @@ import numpy as np
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 #import time
 
-threadsperblock = 8
-blockspergrid = 2
+threadsperblock = 16
+blockspergrid = 8
 n = threadsperblock*blockspergrid
 num_bits = 16
 
@@ -61,8 +61,12 @@ def test(out,out_temp,r,c,mem_state,rng_states,num_bits,prob_dist,input_array,ta
                     break
             if target_tt[X] == 2:
                 delta += 0
+            # a flow is treated as a logical false, therefore a match is bad
             elif target_tt[X] == c[i,D.shape[1]-1]:
-                delta += 1
+                if target_tt[X] == 1:
+                    delta += 3
+                else:
+                    delta += 1
         return delta
                 
     # FUNC2 : D --> perturbed D
@@ -86,7 +90,7 @@ def test(out,out_temp,r,c,mem_state,rng_states,num_bits,prob_dist,input_array,ta
         copy(D,out_temp[i])
         delta_old = cost(D)
         delta_array[i] = delta_old
-        for j in range(2000):
+        for itr in range(5):
             rand_num = xoroshiro128p_uniform_float32(rng_states, i)
             perturb(out_temp[i])
             delta = cost(out_temp[i])
